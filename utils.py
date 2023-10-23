@@ -94,21 +94,32 @@ def export_graph(graph, filename="new_graph.dot"):
     pydot_graph.write_dot(filename)
 
 
-def onnx_to_nx_graph(model, reversed=False):
-    model_graph = model.graph
+def onnx_nodes_to_nx_graph(nodes, extra_labels=None):
     G = nx.DiGraph()
     input_names = set()
     output_names = set()
-    for node in model_graph.node:
+
+    for idx, node in enumerate(nodes):
+        if extra_labels is not None:
+            extra_label = extra_labels[idx]
+        else:
+            extra_label = ""
+
         G.add_node(node.name, type="Op", node=node)
         for output in node.output:
             output_names.add(output)
-            G.add_node(output, type="Tensor")
+            G.add_node(output, type="Tensor", extra_label=extra_label)
             G.add_edge(node.name, output)
         for input in node.input:
             input_names.add(input)
             G.add_node(input, type="Tensor")
             G.add_edge(input, node.name)
+    return G
+
+
+def onnx_to_nx_graph(model, reversed=False):
+    model_graph = model.graph
+    G = onnx_nodes_to_nx_graph(model_graph.node)
     return G
 
 
@@ -238,13 +249,14 @@ def bfs_layer_list(G, output_name, downstream=False, reverse=True, n_layers=3):
 
 def trace_output(output, model, backend="ort", n_layers=3):
     input_dict, output_name, output_type = output
-
+    nodes = []
     G = onnx_to_nx_graph(model)
 
     layers = bfs_layer_list(
         G, output_name, downstream=False, reverse=True, n_layers=n_layers
     )
-
+    results = []
+    nodes = []
     for layer in layers:
         print("-" * 50 + "\n")
         for idx, output_name in enumerate(layer):
@@ -258,6 +270,8 @@ def trace_output(output, model, backend="ort", n_layers=3):
                 result = failsafe_compute_output(
                     (input_dict, output_name, output_type), model, backend
                 )
+                results.append(result)
+                nodes.append(node)
                 print(result)
 
         print("-" * 50)
@@ -265,7 +279,19 @@ def trace_output(output, model, backend="ort", n_layers=3):
             printv("|||||v", xoff=20)
         # subgraph_model = onnx_subgraph(model, output_name, output_type)
 
-    pass
+    # Convert the result to separate lists
+    extra_labels = []
+    for result in results:
+        repr = ""
+        for output in result:
+            repr += output.shape.__str__()
+            if output.size < 10:
+                repr += "\n" + output.__repr__()
+        repr += "\n"
+        extra_labels.append(repr)
+    G_sub = onnx_nodes_to_nx_graph(nodes, extra_labels)
+
+    return G_sub
 
 
 def flatten(l):

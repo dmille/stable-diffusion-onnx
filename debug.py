@@ -16,14 +16,15 @@ model = onnx.load(model_path)
 input_dict = make_vae_encoder_input_dict()
 outputs = [
     (input_dict, "/Gather_3_output_0", TensorProto.INT64),
+    (input_dict, "/Gather_3_output_0", TensorProto.INT64),
     (input_dict, "/Concat_output_0", TensorProto.FLOAT),
     (input_dict, "/ConstantOfShape_output_0", TensorProto.FLOAT),
     (input_dict, "/Concat_output_0", TensorProto.FLOAT),
 ]
 
-compare_outputs(outputs[0], model, n_layers=3)
+# compare_outputs(outputs[0], model, n_layers=3)
 # print("\n\nORT")
-# trace_output(outputs[0], model, "ort", n_layers=3)
+trace_output(outputs[0], model, "ort", n_layers=3)
 # print("\n\nGGML")
 # trace_output(outputs[0], model, "ggml", n_layers=3)
 
