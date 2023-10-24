@@ -4,7 +4,7 @@ import numpy as np
 from utils import make_vae_encoder_input_dict, run_onnx_model
 
 
-model = onnx.load("./sd_v15_onnx/vae_encoder/model.onnx")
+model = onnx.load("./models/sd_v15_onnx/vae_encoder/model.onnx")
 input_dict = make_vae_encoder_input_dict()
 
 ort_result = run_onnx_model(model, input_dict, backend="ort")

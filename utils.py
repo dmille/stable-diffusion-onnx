@@ -94,21 +94,21 @@ def export_graph(graph, filename="new_graph.dot"):
     pydot_graph.write_dot(filename)
 
 
-def onnx_nodes_to_nx_graph(nodes, extra_labels=None):
+def onnx_nodes_to_nx_graph(nodes, custom_labels=None):
     G = nx.DiGraph()
     input_names = set()
     output_names = set()
 
     for idx, node in enumerate(nodes):
-        if extra_labels is not None:
-            extra_label = extra_labels[idx]
+        if custom_labels is not None:
+            custom_label = custom_labels[idx]
         else:
-            extra_label = ""
+            custom_label = ""
 
         G.add_node(node.name, type="Op", node=node)
         for output in node.output:
             output_names.add(output)
-            G.add_node(output, type="Tensor", extra_label=extra_label)
+            G.add_node(output, type="Tensor", label=custom_label)
             G.add_edge(node.name, output)
         for input in node.input:
             input_names.add(input)
@@ -120,6 +120,7 @@ def onnx_nodes_to_nx_graph(nodes, extra_labels=None):
 def onnx_to_nx_graph(model, reversed=False):
     model_graph = model.graph
     G = onnx_nodes_to_nx_graph(model_graph.node)
+
     return G
 
 
@@ -280,16 +281,18 @@ def trace_output(output, model, backend="ort", n_layers=3):
         # subgraph_model = onnx_subgraph(model, output_name, output_type)
 
     # Convert the result to separate lists
-    extra_labels = []
-    for result in results:
-        repr = ""
+    custom_labels = []
+    for node, result in zip(nodes, results):
+        repr = node.output[0]
         for output in result:
-            repr += output.shape.__str__()
+            repr += "\n" + output.shape.__str__()
             if output.size < 10:
                 repr += "\n" + output.__repr__()
+            else:
+                repr += "\n" + output.flatten().__repr__() + "..."
         repr += "\n"
-        extra_labels.append(repr)
-    G_sub = onnx_nodes_to_nx_graph(nodes, extra_labels)
+        custom_labels.append(repr)
+    G_sub = onnx_nodes_to_nx_graph(nodes, custom_labels)
 
     return G_sub
 
@@ -329,3 +332,9 @@ def compare_outputs(output, model, n_layers=3):
                 print("\nGGML output: ")
                 print(result_ggml)
                 print("\n")
+
+
+def draw_graph(G, output_path):
+    A = nx.nx_agraph.to_agraph(G)
+    A.layout(prog="dot", args="-Grankdir=LR")
+    A.draw(output_path)
