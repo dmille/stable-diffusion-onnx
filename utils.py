@@ -64,6 +64,14 @@ def make_vae_encoder_input_dict():
     return {"sample": np.random.random([1, 3, 512, 512]).astype(np.float32)}
 
 
+def make_vae_decoder_input_dict():
+    return {"latent_sample": np.random.random([1, 4, 64, 64]).astype(np.float32)}
+
+
+def make_unet_input_dict():
+    return {"latent_sample": np.random.random([1, 4, 64, 64]).astype(np.float32)}
+
+
 def make_text_encoder_input_dict():
     tokenizer_vocab_path = "./models/sd_v15_onnx/tokenizer/vocab.json"
     tokenizer_merges_path = "./models/sd_v15_onnx/tokenizer/merges.txt"
@@ -273,7 +281,7 @@ def trace_output(output, model, backend="ort", n_layers=3):
                 )
                 results.append(result)
                 nodes.append(node)
-                print(result)
+                print([result.shape for result in result])
 
         print("-" * 50)
         if layer != layers[-1]:
