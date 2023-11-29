@@ -1,3 +1,4 @@
+import os
 import re
 import onnx
 from onnx import helper
@@ -65,11 +66,25 @@ def make_vae_encoder_input_dict():
 
 
 def make_vae_decoder_input_dict():
-    return {"latent_sample": np.random.random([1, 4, 64, 64]).astype(np.float32)}
+    if os.path.exists("./data/latents.npy"):
+        latents = np.load("./data/latents.npy") / 0.18215
+    else:
+        latents = np.random.random([1, 4, 64, 64]).astype(np.float32)
+
+    return {"latent_sample": latents}
 
 
 def make_unet_input_dict():
-    return {"latent_sample": np.random.random([1, 4, 64, 64]).astype(np.float32)}
+    if os.path.exists("./data/latents.npy"):
+        latents = np.load("./data/latents.npy") / 0.18215
+    else:
+        latents = np.random.random([1, 4, 64, 64]).astype(np.float32)
+
+    return {
+        "sample": latents,
+        "timestep": np.array([801]).astype(np.int64),
+        "encoder_hidden_states": np.random.random([1, 77, 768]).astype(np.float32),
+    }
 
 
 def make_text_encoder_input_dict():
